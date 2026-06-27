@@ -6,19 +6,27 @@ const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
 module.exports = function setupSocket(io) {
   // ── Auth middleware ─────────────────────────────────────────────────────
   io.use((socket, next) => {
-    const token = socket.handshake.auth?.token;
+    const { token, xPosCode } = socket.handshake.auth || {};
 
-    if (!token) return next(new Error("No token provided"));
-
-    try {
-      const payload = jwt.verify(token, JWT_SECRET);
-      socket.data.userId   = payload.userId;
-      socket.data.username = payload.username;
-      socket.data.xPosCode = payload.xPosCode;
-      socket.data.role     = payload.role; // "pos" | "dashboard"
+    if (token) {
+      try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        socket.data.userId   = payload.userId;
+        socket.data.username = payload.username;
+        socket.data.xPosCode = payload.xPosCode;
+        socket.data.role     = payload.role;
+        next();
+      } catch {
+        next(new Error("Invalid token"));
+      }
+    } else if (xPosCode) {
+      // Pre-registration POS — no token yet, allow to connect for registration flow
+      socket.data.xPosCode = xPosCode;
+      socket.data.role     = "pos";
+      socket.data.username = "pending";
       next();
-    } catch {
-      next(new Error("Invalid token"));
+    } else {
+      next(new Error("No auth provided"));
     }
   });
 
