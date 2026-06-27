@@ -106,7 +106,7 @@ io.on("connection", (socket) => {
 // Health check (Render يستخدمها)
 app.get("/", (req, res) => res.json({ status: "Hub Server running 🚀" }));
 
-// Generate JWT (تستعملها مرة وحدة لتوليد tokens)
+
 // POST /auth/token  body: { storeId: "1", role: "pos", secret: "ADMIN_SECRET" }
 app.post("/auth/token", (req, res) => {
   const { storeId, role, secret } = req.body;
@@ -123,7 +123,6 @@ app.post("/auth/token", (req, res) => {
   res.json({ token });
 });
 
-// Status متاع POS clients المتصلين
 app.get("/status", (req, res) => {
   res.json({ connected_pos: Object.values(posClients) });
 });
