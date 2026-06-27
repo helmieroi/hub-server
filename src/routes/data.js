@@ -174,4 +174,144 @@ router.get("/all/status", authMiddleware, (req, res) => {
   res.json({ success: true, data: all });
 });
 
+// ── Commercial documents (pièces commerciales) ────────────────────────────────
+
+/**
+ * GET /api/data/:xPosCode/tickets
+ * Get paginated tickets list from POS SQLite
+ * Query: page, limit, status, startDate, endDate
+ */
+router.get("/:xPosCode/tickets", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const { page, limit, status, startDate, endDate } = req.query;
+
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_TICKETS", { page, limit, status, startDate, endDate });
+    res.json({ success: true, ...data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+// ── Mouvements de caisse ──────────────────────────────────────────────────────
+
+/**
+ * GET /api/data/:xPosCode/sessions
+ * Get sessions history from POS SQLite
+ */
+router.get("/:xPosCode/sessions", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_SESSIONS_HISTORY", {});
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/data/:xPosCode/sessions/active
+ * Get the currently active (open) session from POS SQLite
+ */
+router.get("/:xPosCode/sessions/active", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_ACTIVE_SESSION", {});
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/data/:xPosCode/balance
+ * Get caisse balance from POS SQLite
+ * Query: startDate, endDate, session_id, hasSession
+ */
+router.get("/:xPosCode/balance", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const { startDate, endDate, session_id, hasSession } = req.query;
+
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_BALANCE", { startDate, endDate, session_id, hasSession });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/data/:xPosCode/movements
+ * Get caisse movements from POS SQLite
+ * Query: startDate, endDate, types (comma-separated), session_id, hasSession
+ */
+router.get("/:xPosCode/movements", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const { startDate, endDate, types, session_id, hasSession } = req.query;
+
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const payload = {
+      startDate,
+      endDate,
+      session_id,
+      hasSession: hasSession !== undefined ? hasSession === "true" : undefined,
+      types: types ? types.split(",") : undefined,
+    };
+    const data = await askPOS(pos, "GET_MOVEMENTS", payload);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/data/:xPosCode/movements
+ * Create a caisse movement in POS SQLite
+ * Body: { type, amount, reason, notes, session_id }
+ */
+router.post("/:xPosCode/movements", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "CREATE_MOVEMENT", req.body);
+    res.status(201).json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/data/:xPosCode/movements/:movementId
+ * Delete a caisse movement from POS SQLite
+ */
+router.delete("/:xPosCode/movements/:movementId", authMiddleware, async (req, res) => {
+  const { xPosCode, movementId } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "DELETE_MOVEMENT", { movementId });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
