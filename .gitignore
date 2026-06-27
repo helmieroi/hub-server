@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.claude
+node_modules
+dist
+dist-ssr
+*.local 
+dist
+BaristaX Design System-handoff
+renderer/dist
+renderer/node_modules
+documents
+package-lock.json
+renderer/package-lock.json
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+dist.rar
+Nouveau Document texte.txt
+keys-2030-12-31.txt
+renderer/vite.config.js.timestamp-1780931035012-1c79fadd1edcf.mjs
