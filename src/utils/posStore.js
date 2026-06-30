@@ -17,10 +17,21 @@ module.exports = {
     console.log(`🏪 POS registered → xPosCode=${xPosCode}`);
   },
 
-  // Remove POS when it disconnects
-  unregister(xPosCode) {
+  // Remove POS when it disconnects.
+  // Pass the disconnecting socket's id: we only delete the slot if it still
+  // belongs to THAT socket. This prevents a slow-dying old connection from
+  // evicting a newer one that already reconnected (the "ghost connection" bug).
+  unregister(xPosCode, socketId = null) {
+    const entry = store[xPosCode];
+    if (!entry) return false;
+    if (socketId && entry.socketId !== socketId) {
+      // A newer socket already took this slot — leave it alone.
+      console.log(`↪️  stale disconnect ignored → xPosCode=${xPosCode}`);
+      return false;
+    }
     delete store[xPosCode];
     console.log(`❌ POS unregistered → xPosCode=${xPosCode}`);
+    return true;
   },
 
   // Get POS socket by xPosCode

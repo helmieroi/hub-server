@@ -13,6 +13,10 @@ const app    = express();
 const server = http.createServer(app);
 const PORT   = process.env.PORT || 3001;
 
+// Behind Render / a VPS reverse proxy (nginx) we sit behind a load balancer.
+// Trust it so client IPs / wss are detected correctly.
+app.set("trust proxy", 1);
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors({ origin: "*" }));
 app.use(express.json());
@@ -27,6 +31,30 @@ app.use("/api/data",     dataRoute);
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
+
+  // Heartbeat — engine.io does ping/pong for us. Do NOT add manual setInterval
+  // pings on top. These values: server sends a ping every 20s; if no pong comes
+  // back within 25s the socket is considered dead and cleaned up automatically.
+  // Tuned a little tighter than defaults so dead links are detected faster on
+  // flaky café / mobile networks, while staying under typical proxy idle limits.
+  pingInterval: 20000,
+  pingTimeout:  25000,
+
+  // Survive brief network drops without losing data. On a short disconnect the
+  // session + any events emitted during the gap are restored on reconnect, so a
+  // 2s blip no longer drops `pos:event` messages or marks the POS offline.
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+    skipMiddlewares: true,
+  },
+
+  // Reject absurd payloads instead of buffering them into a memory leak.
+  maxHttpBufferSize: 2 * 1024 * 1024, // 2 MB
+});
+
+// Surface (don't crash on) engine-level connection errors.
+io.engine.on("connection_error", (err) => {
+  console.warn(`⚠️  engine connection_error: ${err.code} ${err.message}`);
 });
 
 setupSocket(io);
@@ -37,3 +65,31 @@ server.listen(PORT, () => {
   console.log(`📡 Socket.io ready`);
   console.log(`🔗 REST API ready`);
 });
+
+// ── Resilience: never let one bad event take the whole hub down ────────────────
+process.on("uncaughtException", (err) => {
+  console.error("💥 uncaughtException:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 unhandledRejection:", reason);
+});
+
+// ── Graceful shutdown (Render/VPS redeploys send SIGTERM) ──────────────────────
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n${signal} received — draining connections...`);
+
+  // Ask all clients to disconnect cleanly so they reconnect to the new instance.
+  io.close(() => console.log("📡 Socket.io closed"));
+  server.close(() => {
+    console.log("🛑 HTTP server closed — bye");
+    process.exit(0);
+  });
+
+  // Hard cap so a stuck socket can't block the redeploy forever.
+  setTimeout(() => process.exit(0), 10000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
