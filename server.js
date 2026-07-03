@@ -39,6 +39,24 @@ io.use((socket, next) => {
     next(new Error("Invalid token"));
   }
 });
+// ── Keep-alive self-ping ───────────────────────────────────────────────────────
+// Free hosts (Render, etc.) spin the app down after ~15 min of inactivity. Hit our
+// own health endpoint every 10 min so the instance stays awake. No router needed —
+// this is just a background timer that calls `/` on ourselves.
+const KEEP_ALIVE_MS = 1 * 1 * 1000; // 10 minutes
+const SELF_URL =
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.SELF_URL ||
+  `http://127.0.0.1:${PORT}`;
+
+setInterval(async () => {
+  try {
+    const res = await fetch(`${SELF_URL}/`);
+    console.log(`💓 keep-alive ping → ${res.status}`);
+  } catch (err) {
+    console.warn(`⚠️  keep-alive ping failed: ${err.message}`);
+  }
+}, KEEP_ALIVE_MS).unref();
 
 // ─── Connection handler ───────────────────────────────────────────────────────
 io.on("connection", (socket) => {
@@ -103,7 +121,7 @@ io.on("connection", (socket) => {
 
 // ─── REST API ─────────────────────────────────────────────────────────────────
 
-// Health check (Render يستخدمها)
+// Health check
 app.get("/", (req, res) => res.json({ status: "Hub Server running 🚀" }));
 
 

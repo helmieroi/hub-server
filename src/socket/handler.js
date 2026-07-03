@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const posStore = require("../utils/posStore");
 
-const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = function setupSocket(io) {
   // ── Auth middleware ─────────────────────────────────────────────────────
