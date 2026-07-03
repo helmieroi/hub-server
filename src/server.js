@@ -69,7 +69,7 @@ server.listen(PORT, () => {
 // Free hosts (Render, etc.) spin the app down after ~15 min of inactivity. Hit our
 // own health endpoint every 10 min so the instance stays awake. No router needed —
 // this is just a background timer that calls `/` on ourselves.
-const KEEP_ALIVE_MS = 1 * 30 * 1000; // 10 minutes
+const KEEP_ALIVE_MS = 10 * 60 * 1000; // 10 minutes
 const SELF_URL ="https://boot-keep-server-alive-1.onrender.com";
 /*  process.env.RENDER_EXTERNAL_URL || "https://boot-keep-server-alive-1.onrender.com" ||
   process.env.SELF_URL ||
