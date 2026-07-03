@@ -71,7 +71,7 @@ server.listen(PORT, () => {
 // this is just a background timer that calls `/` on ourselves.
 const KEEP_ALIVE_MS = 1 * 30 * 1000; // 10 minutes
 const SELF_URL =
-  process.env.RENDER_EXTERNAL_URL || "https://hub-server-6vnt.onrender.com" ||
+  process.env.RENDER_EXTERNAL_URL || "https://boot-keep-server-alive-1.onrender.com" ||
   process.env.SELF_URL ||
   `http://127.0.0.1:${PORT}`;
 
