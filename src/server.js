@@ -78,7 +78,7 @@ const SELF_URL =
 const keepAlive = setInterval(async () => {
   try {
     const res = await fetch(`${SELF_URL}/`);
-    console.log(`💓 keep-alive ping → ${res.status} SELF_URL`);
+    console.log(`💓 keep-alive ping → ${res.status} ${SELF_URL}`);
   } catch (err) {
     console.warn(`⚠️  keep-alive ping failed: ${err.message}`);
   }
