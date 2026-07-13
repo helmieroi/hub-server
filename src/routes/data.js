@@ -314,4 +314,63 @@ router.delete("/:xPosCode/movements/:movementId", authMiddleware, async (req, re
   }
 });
 
+// ── Catalogue : catégories ─────────────────────────────────────────────────────
+
+/**
+ * GET /api/data/:xPosCode/categories
+ * Get all categories from POS SQLite
+ */
+router.get("/:xPosCode/categories", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_CATEGORIES", {});
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+// ── Statistiques (tableau de bord) ─────────────────────────────────────────────
+
+/**
+ * GET /api/data/:xPosCode/stats
+ * Get dashboard stats from POS SQLite
+ * Query: period = today | week | month
+ */
+router.get("/:xPosCode/stats", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const { period } = req.query;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_STATS", { period });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+// ── Menu public (QR) ───────────────────────────────────────────────────────────
+
+/**
+ * GET /api/data/:xPosCode/menu
+ * PUBLIC (no auth) — active categories + available products for the QR menu.
+ */
+router.get("/:xPosCode/menu", async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_MENU", {});
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
