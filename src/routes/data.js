@@ -88,6 +88,23 @@ router.get("/:xPosCode/products", authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/data/:xPosCode/config
+ * Get app config (default currency, …) from POS SQLite
+ */
+router.get("/:xPosCode/config", authMiddleware, async (req, res) => {
+  const { xPosCode } = req.params;
+  const pos = getPos(xPosCode, res);
+  if (!pos) return;
+
+  try {
+    const data = await askPOS(pos, "GET_APP_CONFIG", {});
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(503).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/data/:xPosCode/status
  * Get POS status (online/offline + basic info)
  */
